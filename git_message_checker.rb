@@ -6,9 +6,19 @@ require 'tmpdir'
 MODEL='gemini-2.5-flash'
 
 REVIEW_PROMPT = %q(
-You are a member of the Git community, and you know the commit message guidelines
-used by the Git source code. Rewrite the message following those guidelines.
-Return only the message without any extra word.
+Revise the patch message following the Linux kernel conventions:
+
+- title following the format "<file>: <short, imperative summary of the change>"
+- title shouldn't be capitalized
+- explain the purpose of the change
+- explain the technical details
+- line wrap up to 75 characters
+- changes are describe in present tense and imperative mood
+- don't touch signed-off-by lines
+- don't be overly formal
+
+Return only the message. Don't return anything before or after the revised
+message. 
 )
 
 def get_commit_list from, to
@@ -28,10 +38,10 @@ def get_commit_msg commit
 end
 
 def review_message msg
-  prompt = REVIEW_PROMPT.gsub("\n", " ")
-  cmd = "gemini -p '#{prompt}' -m '#{MODEL}' --output-format=json"
+  cmd = ['gemini', '-p', REVIEW_PROMPT, '-m', MODEL, '--output-format=json']
 
   response = IO.popen(cmd, 'w+') do |gemini|
+    gemini.print("This is the message:\n")
     gemini.puts(msg)
     gemini.close_write
     gemini.read
